@@ -73,7 +73,6 @@ public class RoomServiceIntegrationTest {
                     .name(Room.NAME)
                     .fullName(Room.FULL_NAME)
                     .description(Room.DESCRIPTION)
-                    .exits(Room.EXITS)
                     .commands(Room.COMMANDS)
                     .roomInventory(Room.INVENTORY)
                     .build();
@@ -148,7 +147,6 @@ public class RoomServiceIntegrationTest {
                     .name(Room.NAME)
                     .fullName(Room.FULL_NAME)
                     .description(Room.DESCRIPTION)
-                    .exits(Room.EXITS)
                     .commands(Room.COMMANDS)
                     .roomInventory(Room.INVENTORY)
                     .build();
@@ -171,7 +169,7 @@ public class RoomServiceIntegrationTest {
 
             Exit northExit = Exit.builder()
                     .playerId("<userId>")
-                    .content("You exit through a dark entranceway")
+                    .content("You head north")
                     .exitId("N")
                     .build();
             tester.expect(northExit);
@@ -244,6 +242,30 @@ public class RoomServiceIntegrationTest {
         }
     }
 
+    @Test
+    public void broadcastsPingCommands() throws Exception {
+        try (GameOnTester tester = new GameOnTester()) {
+            tester.expectAck();
+
+            RoomCommand pingMessage = RoomCommand.builder()
+                    .roomId("<roomId>")
+                    .username("chatUser")
+                    .userId("<userId>")
+                    .content("/ping Hello, world")
+                    .build();
+            tester.send(pingMessage);
+
+            Event unknownCommandEvent = Event.builder()
+                    .playerId("*")
+                    .content(HashTreePMap.<String, String>empty()
+                            .plus("*", "<userId> is playing pingpong")
+                            .plus("<userId>", "pong: Hello, world"))
+                    .bookmark(Optional.empty())
+                    .build();
+            tester.expect(unknownCommandEvent);
+        }
+    }
+    
     @Test
     public void broadcastsChatMessages() throws Exception {
         try (GameOnTester tester = new GameOnTester()) {

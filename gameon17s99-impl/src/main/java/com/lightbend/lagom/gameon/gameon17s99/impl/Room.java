@@ -27,14 +27,14 @@ class Room extends AbstractActor {
     static final String DESCRIPTION = "Lots of text about what the room looks like";
 
     static final PMap<String, String> EXITS = HashTreePMap.<String, String>empty()
-            .plus("N", "a dark entranceway")
-            .plus("S", "a heavy door")
-            .plus("E", "an iron gate")
-            .plus("W", "a beaded curtain");
+            .plus("N", "north")
+            .plus("S", "south")
+            .plus("E", "east")
+            .plus("W", "west");
 
-    static final PMap<String, String> COMMANDS = HashTreePMap.<String, String>empty();
+    static final PMap<String, String> COMMANDS = HashTreePMap.<String, String>empty()
     // Add custom commands below:
-    //        .plus("/ping", "Does this work?");
+            .plus("/ping", "Does this work?");
     // Each custom command will also need to be added to the handleCommand method.
 
     static final PSequence<String> INVENTORY = TreePVector.<String>empty();
@@ -42,11 +42,14 @@ class Room extends AbstractActor {
     //        .plus("itemA")
     //        .plus("itemB")
 
-    private static final String EXIT_PREFIX = "You exit through ";
+    private static final String EXIT_PREFIX = "You head ";
     private static final String EXIT_INSTRUCTIONS = " (type '/exits' to see a list)";
     private static final String MISSING_DIRECTION = "Provide a direction to go" + EXIT_INSTRUCTIONS;
     private static final String UNKNOWN_DIRECTION_PREFIX = "Unknown direction: ";
     private static final String UNKNOWN_COMMAND = "Unknown command: ";
+    private static final String ALL_PLAYERS = "*";
+    private static final String PINGPONG = " is playing pingpong";
+    private static final String PONG = "pong: ";
 
     private static final Pattern COMMAND = Pattern.compile("\\A/(\\S+)\\s*(.*)\\Z");
 
@@ -70,7 +73,6 @@ class Room extends AbstractActor {
                 .name(NAME)
                 .fullName(FULL_NAME)
                 .description(DESCRIPTION)
-                .exits(EXITS)
                 .commands(COMMANDS)
                 .roomInventory(INVENTORY)
                 .build();
@@ -85,6 +87,8 @@ class Room extends AbstractActor {
                     handleLookCommand(message);
                 case "go":
                     handleGoCommand(message, command.get().argument);
+                case "ping":
+                    handlePingCommand(message, command.get().argument);
                 default:
                     handleUnknownCommand(message);
             }
@@ -105,7 +109,6 @@ class Room extends AbstractActor {
                 .name(NAME)
                 .fullName(FULL_NAME)
                 .description(DESCRIPTION)
-                .exits(EXITS)
                 .commands(COMMANDS)
                 .roomInventory(INVENTORY)
                 .build();
@@ -114,7 +117,7 @@ class Room extends AbstractActor {
 
     private void handleGoCommand(RoomCommand goCommand, String direction) {
         if (!direction.isEmpty()) {
-            String exitDescription = EXITS.get(direction);
+            String exitDescription = EXITS.get(direction.toUpperCase());
             if (exitDescription != null) {
                 Exit exit = Exit.builder()
                         .playerId(goCommand.getUserId())
@@ -161,6 +164,17 @@ class Room extends AbstractActor {
                 .bookmark(Optional.empty())
                 .build();
         reply(unknownCommandResponse);
+    }
+    
+    private void handlePingCommand(RoomCommand pingCommand, String argument) {
+        Event pingCommandResponse = Event.builder()
+                .playerId(ALL_PLAYERS)
+                .content(HashTreePMap.<String, String>empty()
+                        .plus(ALL_PLAYERS, pingCommand.getUserId() + PINGPONG)
+                        .plus(pingCommand.getUserId(), PONG + argument))
+                .bookmark(Optional.empty())
+                .build();
+        reply(pingCommandResponse);
     }
 
     private void handleChat(RoomCommand chatCommand) {
